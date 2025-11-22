@@ -168,6 +168,7 @@
       color: white;
       user-select: none;
       -webkit-tap-highlight-color: rgba(255, 255, 255, 0.5);
+      touch-action: manipulation; /* Prevent double-tap zoom */
     }
   </style>
 </head>
@@ -495,7 +496,7 @@
                   wall.answerUsed = true;
                   wall.answer = null;
                 } else if (wall.answer === this.wrongAnswer) {
-                  this.player.bloodDelta(-2);
+                  this.player.bloodDelta(-1);
                   wall.answerUsed = true;
                   wall.answer = null;
                 }
@@ -516,7 +517,7 @@
         if (this.player.p.y-this.player.height<0){
           if (this.hurt==0){   
             this.hurt=1
-            this.player.bloodDelta(-2)
+            this.player.bloodDelta(-1)
             this.player.v.y=2
             this.player.p.y=10
             TweenMax.to(this,0.5,{hurt: 0})
@@ -797,7 +798,7 @@
           player.p.y = this.p.y
           
           if (player.lastBlock!=this){
-            player.bloodDelta(-2) 
+            player.bloodDelta(-1) 
             game.hurt=1
             TweenMax.to( game,0.2,{hurt: 0} )
           }
@@ -920,10 +921,15 @@
       game.keystatus[key]=false
     })
 
-    // Touch controls for mobile devices
+    // Touch controls for mobile devices - iPad compatible
     const leftBtn = document.getElementById('leftBtn');
     const rightBtn = document.getElementById('rightBtn');
     
+    function preventDefault(e) {
+      e.preventDefault();
+    }
+    
+    // Left button touch events
     leftBtn.addEventListener('touchstart', function(e) {
       e.preventDefault();
       game.keystatus.left = true;
@@ -934,6 +940,12 @@
       game.keystatus.left = false;
     });
     
+    leftBtn.addEventListener('touchcancel', function(e) {
+      e.preventDefault();
+      game.keystatus.left = false;
+    });
+    
+    // Right button touch events
     rightBtn.addEventListener('touchstart', function(e) {
       e.preventDefault();
       game.keystatus.right = true;
@@ -944,18 +956,16 @@
       game.keystatus.right = false;
     });
     
-    // Prevent default touch behaviors to avoid scrolling
-    document.addEventListener('touchstart', function(e) {
-      if (e.target !== leftBtn && e.target !== rightBtn) {
-        e.preventDefault();
-      }
-    }, { passive: false });
+    rightBtn.addEventListener('touchcancel', function(e) {
+      e.preventDefault();
+      game.keystatus.right = false;
+    });
     
-    document.addEventListener('touchend', function(e) {
-      if (e.target !== leftBtn && e.target !== rightBtn) {
-        e.preventDefault();
-      }
-    }, { passive: false });
+    // Prevent scrolling/pinch zoom on the entire document
+    document.addEventListener('touchstart', preventDefault, { passive: false });
+    document.addEventListener('touchmove', preventDefault, { passive: false });
+    document.addEventListener('touchend', preventDefault, { passive: false });
+    document.addEventListener('touchcancel', preventDefault, { passive: false });
     
     // Name modal event listeners
     document.getElementById('submitName').addEventListener('click', submitName);
