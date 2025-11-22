@@ -49,7 +49,8 @@
     /* Leaderboard styles */
     #leaderboard {
       position: fixed;
-      top: 150px; /* Adjusted position: moved lower */
+      top: 50%; /* Adjusted position: Center vertically */
+      transform: translateY(-50%); /* Adjust up by half its height for true centering */
       right: 10px;
       background-color: rgba(0, 0, 0, 0.7);
       color: white;
@@ -196,7 +197,8 @@
 </head>
 <body>
   <canvas id="mycanvas"></canvas>
-  <button onclick="game.start()">Start</button>
+  <!-- Added ID for event listener attachment and removed inline onclick -->
+  <button id="startButton">Start</button>
 
   <!-- Leaderboard -->
   <div id="leaderboard">
@@ -255,6 +257,7 @@
         gui.add(controls,"value",-2,2).step(0.01).onChange(function(value){})
     }
 
+    // Attempt to start BGM, but rely on user interaction (Start button) if this fails
     document.getElementById('musicBg').play().catch(e => console.log('BGM playback prevented by browser, will start on user interaction.'));
     document.getElementById('musicBg').volume=0.4
     document.getElementById('transmiting').volume=0.3
@@ -482,14 +485,13 @@
       }
       start(){
         
-        document.getElementById('musicBg').play().catch(e => console.log('BGM playback failed on start.'));
-        document.querySelector('button').style.display = 'none'
+        document.querySelector('#startButton').style.display = 'none'
         this.init()
         this.playing=true
         this.time=0
       }
       end(){
-        document.querySelector('button').style.display = 'block'
+        document.querySelector('#startButton').style.display = 'block'
         playSound('dead')  
         this.playing=false
         
@@ -936,6 +938,14 @@
     function loaded(){
       initCanvas()
       init()
+      
+      // FIX: Attach Start button listener for reliable touch interaction
+      document.getElementById('startButton').addEventListener('click', function() {
+          // Play BGM here, as it's user-initiated
+          document.getElementById('musicBg').play().catch(e => console.log('BGM playback failed on start.'));
+          game.start();
+      });
+      
       requestAnimationFrame(draw)
       setInterval(update,1000/updateFPS)
     }
@@ -993,7 +1003,7 @@
     
     ['touchend', 'touchcancel'].forEach(event => {
       leftBtn.addEventListener(event, function(e) {
-        e.preventDefault();
+        // Removed e.preventDefault() here for better touch release reliability
         game.keystatus.left = false;
       }, { passive: false });
     });
@@ -1006,14 +1016,16 @@
     
     ['touchend', 'touchcancel'].forEach(event => {
       rightBtn.addEventListener(event, function(e) {
-        e.preventDefault();
+        // Removed e.preventDefault() here for better touch release reliability
         game.keystatus.right = false;
       }, { passive: false });
     });
     
-    // Prevent scrolling/pinch zoom on the entire document (except for input fields)
+    // Global touch prevention: Added touchend/touchcancel globally for robustness
     document.addEventListener('touchstart', preventDefault, { passive: false });
     document.addEventListener('touchmove', preventDefault, { passive: false });
+    document.addEventListener('touchend', preventDefault, { passive: false });
+    document.addEventListener('touchcancel', preventDefault, { passive: false });
     
     // Name modal event listeners
     document.getElementById('submitName').addEventListener('click', submitName);
