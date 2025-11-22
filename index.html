@@ -537,7 +537,7 @@
         if (this.player.p.y-this.player.height<0){
           if (this.hurt==0){   
             this.hurt=1
-            this.player.bloodDelta(-1)
+            this.player.bloodDelta(-2)
             this.player.v.y=2
             this.player.p.y=10
             TweenMax.to(this,0.5,{hurt: 0})
@@ -820,7 +820,7 @@
           player.p.y = this.p.y
           
           if (player.lastBlock!=this){
-            player.bloodDelta(-1) 
+            player.bloodDelta(-2) 
             game.hurt=1
             TweenMax.to( game,0.2,{hurt: 0} )
           }
