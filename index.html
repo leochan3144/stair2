@@ -704,10 +704,15 @@
         // Adjusted position for mobile layout
         const startX = ww - 250; 
         const startY = 30;
+        
+        // Increased thickness for blood bar
+        const barWidth = 18;
+        const barHeight = 30; 
+        const spacing = 4;
 
         for(var i=0;i<10;i++){
           ctx.fillStyle=i<this.blood?"red":"rgba(255,255,255,0.2)"
-          ctx.fillRect(startX + i * 15 + (i - 1) * 4, startY, 10, 20) /* Reduced height for mobile */
+          ctx.fillRect(startX + i * (barWidth + spacing), startY, barWidth, barHeight)
         }
       }
       //扣血量的統一管理
@@ -990,7 +995,8 @@
     
     // Function to prevent touch default actions (like scrolling or context menus)
     function preventDefault(e) {
-      if (e.target.tagName !== 'INPUT' && e.target.id !== 'nameInput') {
+      // Only prevent default if the target is NOT an input field (like the name input)
+      if (e.target.tagName !== 'INPUT') {
         e.preventDefault();
       }
     }
@@ -1003,7 +1009,6 @@
     
     ['touchend', 'touchcancel'].forEach(event => {
       leftBtn.addEventListener(event, function(e) {
-        // Removed e.preventDefault() here for better touch release reliability
         game.keystatus.left = false;
       }, { passive: false });
     });
@@ -1016,16 +1021,14 @@
     
     ['touchend', 'touchcancel'].forEach(event => {
       rightBtn.addEventListener(event, function(e) {
-        // Removed e.preventDefault() here for better touch release reliability
         game.keystatus.right = false;
       }, { passive: false });
     });
     
-    // Global touch prevention: Added touchend/touchcancel globally for robustness
+    // Global touch prevention: Only prevent default scroll/zoom on start and move.
+    // Crucially, removed prevention on touchend/touchcancel to allow clean button release.
     document.addEventListener('touchstart', preventDefault, { passive: false });
     document.addEventListener('touchmove', preventDefault, { passive: false });
-    document.addEventListener('touchend', preventDefault, { passive: false });
-    document.addEventListener('touchcancel', preventDefault, { passive: false });
     
     // Name modal event listeners
     document.getElementById('submitName').addEventListener('click', submitName);
@@ -1036,6 +1039,7 @@
     });
     
     // Add answer generation to walls
+    // This is done by modifying the game update loop to assign answers to normal/jump walls
     const originalGameUpdate = Game.prototype.update;
     Game.prototype.update = function() {
       originalGameUpdate.call(this);
