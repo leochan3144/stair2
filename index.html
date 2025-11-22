@@ -541,7 +541,7 @@
         if (this.player.p.y-this.player.height<0){
           if (this.hurt==0){   
             this.hurt=1
-            this.player.bloodDelta(-2)
+            this.player.bloodDelta(-1)
             this.player.v.y=2
             this.player.p.y=10
             TweenMax.to(this,0.5,{hurt: 0})
