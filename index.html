@@ -2,9 +2,9 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>小朋友下樓梯</title>
-  <!-- 移除 dat.gui.min.js 的引用 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>小朋友下樓梯 - 數學挑戰版</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.20.4/TweenMax.min.js"></script>
   <style>
     html, body {
@@ -13,6 +13,7 @@
       overflow: hidden;
       background-color: black;
       font-family: Arial, sans-serif;
+      touch-action: none; /* 禁止手機瀏覽器預設的滑動行為 */
     }
 
     canvas {
@@ -21,7 +22,7 @@
       height: auto;
     }
 
-    button {
+    #startBtn {
       position: fixed;
       left: 50%;
       top: 50%;
@@ -35,798 +36,963 @@
       letter-spacing: 1px;
       cursor: pointer;
       border: none;
-      box-shadow: 0px 0px 20px rgba(255, 255, 255, 0.5);
-      z-index: 1000;
-      transition: all 0.3s ease;
+      box-shadow: 0px 0px 20px rgba(255, 255, 255, 0.3);
+      z-index: 10;
     }
 
-    button:hover {
-      background-color: rgba(255, 255, 255, 0.4);
+    #startBtn:hover {
+      background-color: rgba(255, 255, 255, 0.3);
     }
     
-    .modal {
+    /* Leaderboard styles - 預設隱藏，結束時顯示 */
+    #leaderboard {
+      display: none; 
       position: fixed;
-      z-index: 2000;
-      left: 0;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 30px;
+      border-radius: 15px;
+      font-size: 16px;
+      z-index: 25;
+      min-width: 300px;
+      box-shadow: 0 0 20px rgba(83, 211, 55, 0.5);
+      border: 2px solid #53d337;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    #leaderboard h3 {
+      margin: 0 0 20px 0;
+      text-align: center;
+      color: #ffdd38;
+      font-size: 24px;
+    }
+    
+    #leaderboard ol {
+      padding-left: 20px;
+      margin: 0;
+    }
+    
+    #leaderboard li {
+      margin-bottom: 8px;
+      color: white;
+      font-size: 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding: 5px 0;
+    }
+    
+    .current-score {
+      color: #53d337 !important;
+      font-weight: bold;
+    }
+
+    #restartBtn {
+        display: block;
+        margin: 20px auto 0 auto;
+        padding: 10px 30px;
+        background-color: #53d337;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 20px;
+        cursor: pointer;
+    }
+    
+    /* Name input modal */
+    #nameModal {
+      display: none;
+      position: fixed;
       top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.7);
+      background-color: rgba(0, 0, 0, 0.85);
+      z-index: 30;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .modal-content {
+      background-color: rgba(50, 50, 50, 0.95);
+      padding: 40px;
+      border-radius: 15px;
+      text-align: center;
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+    }
+    
+    #nameInput {
+      padding: 10px;
+      font-size: 20px;
+      border: 2px solid #53d337;
+      border-radius: 5px;
+      background-color: #222;
+      color: white;
+      margin: 15px 0;
+      width: 250px;
+      text-align: center;
+    }
+    
+    #nameInput:focus {
+      outline: none;
+      border-color: #ffdd38;
+    }
+    
+    #submitName {
+      padding: 10px 30px;
+      font-size: 20px;
+      background-color: #53d337;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    
+    .modal-title {
+      color: #ffdd38;
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+    
+    .score-display {
+      font-size: 24px;
+      margin: 15px 0;
+      color: white;
+    }
+    
+    /* Touch controls */
+    #touchControls {
+      position: fixed;
+      bottom: 30px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between; 
+      padding: 0 40px;
+      box-sizing: border-box;
+      z-index: 20;
+      pointer-events: none; /* 讓點擊穿透到畫布，除非點到按鈕 */
+    }
+    
+    .touch-btn {
+      pointer-events: auto; /* 恢復按鈕的可點擊性 */
+      width: 100px;
+      height: 100px;
+      background-color: rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
       display: flex;
       justify-content: center;
       align-items: center;
-      transition: opacity 0.3s ease;
-    }
-
-    .modal-content {
-      background-color: #fff;
-      padding: 30px;
-      border-radius: 10px;
-      text-align: center;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-      max-width: 90%;
-      min-width: 300px;
-    }
-
-    .modal-content h2 {
-      margin-top: 0;
-      color: #333;
-    }
-
-    .modal-content input {
-      padding: 10px;
-      margin: 10px 0 20px 0;
-      width: 80%;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      font-size: 16px;
-    }
-
-    .modal-content button {
-      position: static;
-      transform: none;
-      padding: 10px 20px;
-      background-color: #4CAF50;
+      font-size: 40px;
       color: white;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 18px;
-      box-shadow: none;
-      transition: background-color 0.3s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: background-color 0.1s;
     }
 
-    .modal-content button:hover {
-      background-color: #45a049;
-    }
-
-    .hidden {
-      display: none;
+    .touch-btn:active {
+        background-color: rgba(255, 255, 255, 0.4);
     }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
-  <button id="startButton" class="hidden">開始遊戲</button>
-  
-  <!-- 玩家名稱輸入模態框 -->
-  <div id="nameModal" class="modal hidden">
-    <div class="modal-content">
-      <h2>請輸入你的名字</h2>
-      <input type="text" id="nameInput" placeholder="你的名字" maxlength="10">
-      <button id="submitName">確定</button>
-    </div>
+  <canvas id="mycanvas"></canvas>
+  <button id="startBtn" onclick="game.start()">Start</button>
+
+  <div id="leaderboard">
+    <h3>🏆 排行榜</h3>
+    <ol id="scoresList"></ol>
+    <button id="restartBtn" onclick="game.restartGame()">再玩一次</button>
   </div>
 
-  <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const startButton = document.getElementById('startButton');
-    const nameModal = document.getElementById('nameModal');
-    const nameInput = document.getElementById('nameInput');
+  <div id="nameModal">
+    <div class="modal-content">
+      <div class="modal-title">新紀錄！</div>
+      <div class="score-display">地下 <span id="currentScoreDisplay" style="color:#53d337; font-weight:bold;">0</span> 階</div>
+      <input type="text" id="nameInput" placeholder="輸入您的名字" maxlength="10" autocomplete="off">
+      <br>
+      <button id="submitName">提交成績</button>
+    </div>
+  </div>
+  
+  <div id="touchControls">
+    <div class="touch-btn" id="leftBtn">◀</div>
+    <div class="touch-btn" id="rightBtn">▶</div>
+  </div>
 
-    let w = window.innerWidth;
-    let h = window.innerHeight;
-    let wh = window.innerHeight;
-    let game;
-    let isGameRunning = false;
-    let playerName = '';
-    
-    // API 配置
-    const apiKey = "" // If you want to use models other than gemini-2.5-flash-preview-09-2025 or imagen-4.0-generate-001, provide an API key here. Otherwise, leave this as-is.
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+  <audio id="musicBg" src="sound/bgm.mp3" preload="auto"></audio>
+  <audio id="transmiting" src="sound/transmit.mp.mp3" preload="auto"></audio>
+  <audio id="hurt" src="sound/hurt.mp3" preload="auto"></audio>
+  <audio id="fade" src="sound/fade.mp3" preload="auto"></audio>
+  <audio id="dead" src="sound/help.mp3" preload="auto"></audio>
+  <audio id="step" src="sound/step.mp3" preload="auto"></audio>
+  <audio id="jump" src="sound/jump.mp3" preload="auto"></audio>
+  <audio id="correct" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg" preload="auto"></audio> <script>
+    //環境變數
+    var updateFPS = 30
+    var showMouse = true
+    var time = 0
+    var bgColor ="black"
 
-    // Helper functions for auth and firestore
-    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-    let db;
-    let auth;
-    let userId = null;
-    let isAuthReady = false;
-
-    // --- Firebase/Auth/Firestore Setup and Helpers (MUST BE SELF-CONTAINED) ---
-    
-    // Note: Since external library imports are not available in the sandbox, 
-    // we must assume the necessary Firebase global variables are available 
-    // or must use the external scripts in a type="module" block which isn't ideal here.
-    // For this environment, we mock the firebase functions and use a simple in-memory store
-    // OR we should be using the standard provided imports if this was a module-based app.
-    // Since this is a single HTML file, we will include the necessary imports in a script tag.
-    
-    // Mocking imports for a seamless single file deployment
-    // In a real environment, you would use these imports:
-    // import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    // import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    // import { getFirestore, doc, setDoc, onSnapshot, collection, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    // Since we are in a single HTML file, we must use the global imports structure and
-    // rely on the platform to provide the Firebase SDK functionality.
-
-    let firebaseApp;
-    let leaderboardRef;
-    let localLeaderboard = []; // Local cache for scores
-    
-    // Define the core Firebase functions needed (will be loaded globally by the platform)
-    // We assume the platform loads Firebase globally and the functions are accessible.
-    
-    const initializeFirebase = async () => {
-        try {
-            // Assume initializeApp, getAuth, getFirestore, etc. are available globally
-            // Or loaded via script tags at the top if necessary.
-            
-            // For the sake of execution in this environment, we'll try to access the provided global functions
-            if (typeof firebase !== 'undefined' && firebase.initializeApp && firebase.auth && firebase.firestore) {
-                firebaseApp = firebase.initializeApp(firebaseConfig);
-                auth = firebase.auth();
-                db = firebase.firestore();
-            } else if (typeof initializeApp !== 'undefined' && typeof getAuth !== 'undefined' && typeof getFirestore !== 'undefined') {
-                // Using modular SDK style, assuming it's loaded
-                firebaseApp = initializeApp(firebaseConfig);
-                auth = getAuth(firebaseApp);
-                db = getFirestore(firebaseApp);
-                // Set Firestore log level (optional but helpful for debugging)
-                // setLogLevel('Debug');
-                
-                // Sign in
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        console.log("Firebase Auth Ready. User ID:", userId);
-                    } else {
-                        // Signed out (shouldn't happen in this setup)
-                        userId = crypto.randomUUID(); // Fallback for unauthenticated
-                        console.log("Firebase Auth Ready. Anonymous/Fallback ID:", userId);
-                    }
-                    isAuthReady = true;
-                    // Start listening to the leaderboard once auth is ready
-                    setupLeaderboardListener();
-                });
-            } else {
-                console.error("Firebase SDK not initialized or functions not found.");
-                // Fallback auth
-                userId = crypto.randomUUID();
-                isAuthReady = true;
-            }
-            
-        } catch (error) {
-            console.error("Firebase initialization failed:", error);
-            // Fallback auth
-            userId = crypto.randomUUID();
-            isAuthReady = true;
-        }
-    };
-    
-    // Score path: /artifacts/{appId}/public/data/leaderboard
-    const LEADERBOARD_PATH = `artifacts/${appId}/public/data/leaderboard`;
-
-    const saveScore = async (name, score) => {
-        if (!isAuthReady || !db) {
-            console.error("Cannot save score: Auth not ready or Firestore not initialized.");
-            return;
-        }
-        
-        try {
-            // Use addDoc to automatically generate an ID
-            const leaderboardCollection = collection(db, LEADERBOARD_PATH);
-            await addDoc(leaderboardCollection, {
-                name: name,
-                score: score,
-                userId: userId,
-                timestamp: Date.now(),
-            });
-            console.log("Score saved successfully!");
-        } catch (e) {
-            console.error("Error adding document: ", e);
-        }
-    };
-    
-    const setupLeaderboardListener = () => {
-        if (!db) {
-            console.error("Cannot setup listener: Firestore not initialized.");
-            return;
-        }
-        
-        const leaderboardCollection = collection(db, LEADERBOARD_PATH);
-        // Query to get top scores: sorted by score descending, limited to 10
-        // NOTE: We cannot use orderBy here as per the instruction, so we fetch and sort locally.
-        const q = query(leaderboardCollection); // Fetch all (or a reasonable limit)
-        
-        onSnapshot(q, (snapshot) => {
-            const scores = [];
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                scores.push({
-                    id: doc.id,
-                    name: data.name,
-                    score: data.score,
-                    timestamp: data.timestamp
-                });
-            });
-            
-            // Sort locally by score descending
-            scores.sort((a, b) => b.score - a.score || a.timestamp - b.timestamp);
-            localLeaderboard = scores.slice(0, 10); // Keep top 10
-            
-            if (game) {
-              game.leaderboard = localLeaderboard;
-            }
-            console.log("Leaderboard updated:", localLeaderboard);
-        }, (error) => {
-            console.error("Error listening to leaderboard:", error);
-        });
-    };
-    
-    // We need to define these functions if they are not loaded globally (which is the case in standard JS sandbox)
-    // If the platform supports the Firebase script imports, these will be overwritten.
-    if (typeof initializeApp === 'undefined') {
-        const doc = (db, path, id) => ({ path, id });
-        const collection = (db, path) => ({ path });
-        const query = (col) => col;
-        const onSnapshot = (q, callback, errorCallback) => {
-            console.warn("Firestore not loaded. Leaderboard disabled.");
-            return () => {}; // Mock unsubscribe
-        };
-        const addDoc = async (col, data) => {
-            console.warn("Firestore not loaded. Score not saved.");
-            return { id: Math.random() };
-        };
-        const getAuth = () => ({ currentUser: { uid: crypto.randomUUID() } });
-        const signInAnonymously = async () => {};
-        const signInWithCustomToken = async () => {};
-        const onAuthStateChanged = (auth, callback) => callback({ uid: crypto.randomUUID() });
-        const initializeApp = (config) => ({});
-        const getFirestore = (app) => ({});
+    //控制
+    var controls = {
+      value: 0
     }
+    var gui = new dat.GUI()
+    gui.add(controls,"value",-2,2).step(0.01).onChange(function(value){})
+    gui.close(); // 預設關閉 GUI 以免擋住
 
-    // --- Game Logic ---
+    var bgm = document.getElementById('musicBg');
+    bgm.volume = 0.4;
+    document.getElementById('transmiting').volume=0.3
+    document.getElementById('step').volume=0.7
+    bgm.addEventListener('ended', function(){
+      this.currentTime = 0;
+      this.play();
+    }, false);
 
-    // 遊戲物件
-    class Game {
-      constructor() {
-        this.score = 0;
-        this.speed = 0;
-        this.acceleration = 0.000000000001;
-        this.player = new Player(w / 2, 0, 50, 50);
-        this.walls = [];
-        this.lastWallTime = Date.now();
-        this.wallSpawnRate = 1000;
-        this.isGameOver = false;
-        this.correctAnswer = null;
-        this.wrongAnswer = null;
-        this.leaderboard = localLeaderboard;
-
-        this.generateNewQuestion();
+    //------------------------
+    // Vec2
+    class Vec2{
+      constructor(x,y){
+        this.x = x
+        this.y = y
       }
-
-      generateNewQuestion() {
-        const num1 = Math.floor(Math.random() * 10) + 1;
-        const num2 = Math.floor(Math.random() * 10) + 1;
-        const operator = ['+', '-', '*'][Math.floor(Math.random() * 3)];
-        let question, correctAnswerValue;
-
-        switch (operator) {
-          case '+':
-            question = `${num1} + ${num2}`;
-            correctAnswerValue = num1 + num2;
-            break;
-          case '-':
-            question = `${num1 + num2} - ${num2}`; // Ensure positive result
-            correctAnswerValue = num1;
-            break;
-          case '*':
-            question = `${num1} × ${num2}`;
-            correctAnswerValue = num1 * num2;
-            break;
-        }
-
-        // Generate a wrong answer that is close to the correct answer but not the same
-        let wrongAnswerValue;
-        do {
-          wrongAnswerValue = correctAnswerValue + (Math.random() > 0.5 ? 1 : -1) * (Math.floor(Math.random() * 3) + 1);
-        } while (wrongAnswerValue === correctAnswerValue || wrongAnswerValue < 0);
-
-
-        this.question = question;
-        this.correctAnswer = correctAnswerValue.toString();
-        this.wrongAnswer = wrongAnswerValue.toString();
-        
-        console.log(`New question: ${this.question} = ${this.correctAnswer} (Wrong: ${this.wrongAnswer})`);
+      set(x,y){
+        this.x =x
+        this.y =y
       }
-
-      update() {
-        if (this.isGameOver) return;
-
-        // Player update
-        this.player.update(this.speed);
-
-        // Update speed and score based on time
-        this.speed += this.acceleration;
-        this.score += 1;
-
-        // Wall spawning
-        if (Date.now() - this.lastWallTime > this.wallSpawnRate) {
-          this.spawnWall();
-          this.lastWallTime = Date.now();
-          // Decrease spawn rate slightly to increase difficulty
-          this.wallSpawnRate = Math.max(200, this.wallSpawnRate - 5);
-        }
-
-        // Wall update and cleanup
-        for (let i = this.walls.length - 1; i >= 0; i--) {
-          const wall = this.walls[i];
-          wall.update(this.speed);
-          
-          // Collision detection (only if player is moving down/up, not jumping or falling)
-          if (!this.player.isJumping && !this.player.isFalling) {
-            // Check if player is hitting a wall from above
-            if (this.player.p.x < wall.p.x + wall.width &&
-                this.player.p.x + this.player.width > wall.p.x &&
-                this.player.p.y + this.player.height >= wall.p.y &&
-                this.player.p.y + this.player.height <= wall.p.y + wall.height * 0.5) { // Only check top half of wall for landing
-
-              if (wall.type !== "ghost") {
-                // Landed on a wall
-                this.player.isFalling = false;
-                this.player.v.y = 0;
-                this.player.p.y = wall.p.y - this.player.height; // Snap to the top of the wall
-                
-                // If it's an answer wall and not used, process the answer
-                if (wall.answer && !wall.answerUsed) {
-                  wall.answerUsed = true;
-                  if (wall.answer === this.correctAnswer) {
-                    this.score += 500; // Bonus for correct answer
-                    this.generateNewQuestion(); // New question
-                    this.player.isJumping = true;
-                    this.player.v.y = -10; // Bounce up after correct answer
-                    wall.color = 'green';
-                  } else {
-                    // Wrong answer
-                    this.gameOver();
-                    wall.color = 'red';
-                    return; // Stop processing to prevent further updates
-                  }
-                }
-              }
-              
-              // Apply wall friction/gravity to player velocity
-              this.player.v.x += wall.v.x;
-            }
-          }
-
-          // Wall removal if off-screen
-          if (wall.p.y > h) {
-            this.walls.splice(i, 1);
-          }
-        }
-        
-        // Check for ground collision
-        if (this.player.p.y + this.player.height > h) {
-          this.gameOver();
-          return;
-        }
-
-        // Check for falling off the top (game over condition)
-        if (this.player.p.y < 0) {
-            this.gameOver();
-            return;
-        }
-        
-        // Check for player going too far off screen horizontally
-        if (this.player.p.x < -this.player.width || this.player.p.x > w) {
-            this.gameOver();
-            return;
-        }
-
-        // Assign answers to new normal and jump walls
-        this.walls.forEach(wall => {
-          if ((wall.type === "normal" || wall.type === "jump") && 
-              wall.answer === null && 
-              !wall.answerUsed && 
-              wall.p.y < wh - 100) { // Only assign to walls that are in view
-            // Randomly assign correct or wrong answer
-            if (Math.random() > 0.5) {
-              wall.answer = this.correctAnswer;
-            } else {
-              wall.answer = this.wrongAnswer;
-            }
-          }
-        });
+      move(x,y){
+        this.x+=x
+        this.y+=y
       }
-
-      draw() {
-        ctx.fillStyle = 'black';
-        ctx.fillRect(0, 0, w, h);
-
-        // Draw question text in the center top
-        ctx.fillStyle = 'white';
-        ctx.font = '30px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(`數學題: ${this.question} = ?`, w / 2, 40);
-
-        // Draw score
-        ctx.font = '24px Arial';
-        ctx.textAlign = 'left';
-        ctx.fillText(`分數: ${this.score}`, 10, 40);
-        
-        // Draw player name and ID
-        ctx.textAlign = 'right';
-        ctx.fillText(`玩家: ${playerName} (${userId.substring(0, 8)}...)`, w - 10, 40);
-
-        // Draw walls
-        this.walls.forEach(wall => wall.draw());
-
-        // Draw player
-        this.player.draw();
-
-        // Draw game over screen and leaderboard
-        if (this.isGameOver) {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(0, 0, w, h);
-
-            ctx.fillStyle = 'white';
-            ctx.font = '70px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('遊戲結束', w / 2, h / 2 - 150);
-            
-            ctx.font = '40px Arial';
-            ctx.fillText(`你的分數: ${this.score}`, w / 2, h / 2 - 80);
-
-            // Draw leaderboard
-            ctx.font = '30px Arial';
-            ctx.fillText('排行榜', w / 2, h / 2);
-            
-            ctx.font = '20px Arial';
-            this.leaderboard.forEach((entry, index) => {
-                const text = `${index + 1}. ${entry.name} - ${entry.score}`;
-                ctx.fillText(text, w / 2, h / 2 + 40 + index * 30);
-            });
-            
-            // Draw restart button text
-            ctx.font = '24px Arial';
-            ctx.fillText('點擊或按任意鍵重新開始', w / 2, h / 2 + 40 + this.leaderboard.length * 30 + 50);
-        }
+      add(v){
+        return new Vec2(this.x+v.x,this.y+v.y)
       }
-
-      spawnWall() {
-        const wallTypes = ["normal", "ghost", "jump", "spike"];
-        // Increase answer wall probability
-        const weights = [0.4, 0.1, 0.4, 0.1];
-        
-        const rand = Math.random();
-        let wallType;
-        let cumulativeWeight = 0;
-        
-        for (let i = 0; i < wallTypes.length; i++) {
-            cumulativeWeight += weights[i];
-            if (rand < cumulativeWeight) {
-                wallType = wallTypes[i];
-                break;
-            }
-        }
-        
-        let width = Math.random() * (w / 3) + 50;
-        let x = Math.random() * (w - width);
-        let height = 20;
-        let y = -height;
-        let vx = (Math.random() - 0.5) * 0.5; // Slight horizontal movement
-        
-        this.walls.push(new Wall(x, y, width, height, vx, wallType));
+      sub(v){
+        return new Vec2(this.x-v.x,this.y-v.y)
       }
-
-      gameOver() {
-        this.isGameOver = true;
-        isGameRunning = false;
-        saveScore(playerName, this.score);
-        console.log("Game Over. Final Score:", this.score);
+      mul(s){
+        return new Vec2(this.x*s,this.y*s)
       }
-    }
-
-    // 牆壁物件
-    class Wall {
-      constructor(x, y, width, height, vx, type) {
-        this.p = { x, y };
-        this.width = width;
-        this.height = height;
-        this.v = { x: vx, y: 0 };
-        this.type = type; // "normal", "ghost", "jump", "spike"
-        this.color = this.getColor();
-        this.answer = null; // Stores the math answer string
-        this.answerUsed = false; // To prevent double scoring
+      get length(){
+        return Math.sqrt(this.x*this.x+this.y*this.y)
       }
-
-      getColor() {
-        switch (this.type) {
-          case "normal":
-            return '#4CAF50'; // Green
-          case "ghost":
-            return 'rgba(150, 150, 150, 0.5)'; // Semi-transparent
-          case "jump":
-            return '#2196F3'; // Blue
-          case "spike":
-            return '#f44336'; // Red
-          default:
-            return '#ccc';
-        }
+      set length(nv){
+        let temp = this.unit.mul(nv)
+        this.set(temp.x,temp.y)
       }
-
-      update(speed) {
-        this.p.y += speed + this.v.y;
-        this.p.x += this.v.x;
+      clone(){
+        return new Vec2(this.x,this.y)
       }
-
-      draw() {
-        ctx.fillStyle = this.color;
-        
-        if (this.type === "spike") {
-            // Draw a red triangle/spike instead of a block
-            ctx.beginPath();
-            ctx.moveTo(this.p.x, this.p.y + this.height);
-            ctx.lineTo(this.p.x + this.width / 2, this.p.y);
-            ctx.lineTo(this.p.x + this.width, this.p.y + this.height);
-            ctx.closePath();
-            ctx.fill();
-        } else {
-            ctx.fillRect(this.p.x, this.p.y, this.width, this.height);
-        }
-        
-        // Draw the answer text if available
-        if (this.answer) {
-          ctx.fillStyle = 'white';
-          ctx.font = '18px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText(this.answer, this.p.x + this.width / 2, this.p.y + this.height / 2 + 6);
-        }
+      toString(){
+        return `(${this.x}, ${this.y})`
       }
-    }
-
-    // 玩家物件
-    class Player {
-      constructor(x, y, width, height) {
-        this.p = { x, y };
-        this.width = width;
-        this.height = height;
-        this.v = { x: 0, y: 0 };
-        this.a = { x: 0, y: 0.5 }; // Gravity
-        this.isJumping = false;
-        this.isFalling = true;
-        this.color = 'yellow';
+      equal(v){
+        return this.x==v.x && this.y ==v.y
       }
-
-      update(wallSpeed) {
-        // Apply acceleration (gravity)
-        this.v.y += this.a.y;
-        
-        // Apply friction to horizontal velocity
-        this.v.x *= 0.95;
-
-        // Apply velocity to position
-        this.p.x += this.v.x;
-        // Compensate for walls moving up (makes player appear stationary relative to the ground if not falling)
-        this.p.y += this.v.y - wallSpeed; 
-
-        // Check for boundary collisions
-        if (this.p.x < 0) {
-          this.p.x = 0;
-          this.v.x = 0;
-        }
-        if (this.p.x + this.width > w) {
-          this.p.x = w - this.width;
-          this.v.x = 0;
-        }
-
-        // Check if player is falling
-        if (this.v.y > 0) {
-          this.isFalling = true;
-          this.isJumping = false;
-        }
+      get angle(){
+        return Math.atan2(this.y,this.x)  
       }
-
-      draw() {
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.p.x, this.p.y, this.width, this.height);
+      get unit(){
+        return this.mul(1/this.length)
       }
       
-      jump() {
-          if (!this.isJumping && !this.isFalling) {
-              this.isJumping = true;
-              this.v.y = -10; // Initial jump velocity
-          }
-      }
     }
 
-    // 調整畫布大小
-    function resize() {
-      w = window.innerWidth;
-      h = window.innerHeight;
-      wh = window.innerHeight; // Keep wh for vertical checks
-      canvas.width = w;
-      canvas.height = h;
-      
-      // Update player position if needed, or simply recenter
-      if (game && !game.isGameOver) {
-          // If the player is on screen, adjust position proportionally or re-center if out of bounds
-          game.player.p.x = Math.min(game.player.p.x, w - game.player.width);
-      }
+    //------
+    var canvas = document.getElementById("mycanvas")
+    var ctx = canvas.getContext("2d")
+    ctx.circle= function(v,r){
+      this.arc(v.x,v.y,r,0,Math.PI*2)
     }
-    
-    // 主遊戲循環
-    function animate() {
-      requestAnimationFrame(animate);
+    ctx.line= function(v1,v2){
+      this.moveTo(v1.x,v1.y)
+      this.lineTo(v2.x,v2.y)
+    }
 
-      if (isGameRunning && game) {
-        game.update();
-        game.draw();
-      } else if (game && game.isGameOver) {
-          game.draw(); // Draw game over screen
-      }
+    function playSound(id){
+      var sound = document.getElementById(id);
+      sound.currentTime=0
+      sound.play().catch(e => console.log(e)); // 捕捉錯誤以免影響遊戲
     }
-    
-    // 遊戲開始函數
-    function startGame() {
-      // 移除 dat.gui 相關程式碼
-      // if (gui) { gui.destroy(); } 
+
+    //排行榜相關函數
+    function getLeaderboard() {
+      const saved = localStorage.getItem('stairGameLeaderboard_math'); // 使用新的 key 避免衝突
+      return saved ? JSON.parse(saved) : [];
+    }
+
+    function saveLeaderboard(scores) {
+      localStorage.setItem('stairGameLeaderboard_math', JSON.stringify(scores));
+    }
+
+    function updateLeaderboardDisplay() {
+      const scores = getLeaderboard();
+      const scoresList = document.getElementById('scoresList');
+      scoresList.innerHTML = '';
       
-      game = new Game();
-      isGameRunning = true;
-      startButton.classList.add('hidden');
-      nameModal.classList.add('hidden');
-    }
-    
-    // 重新開始遊戲
-    function restartGame() {
-        if (game.isGameOver) {
-            startGame();
+      scores.slice(0, 10).forEach((entry, index) => {
+        const li = document.createElement('li');
+        li.textContent = `${entry.name}: ${entry.score}階`;
+        if (entry.isCurrent) {
+          li.classList.add('current-score');
         }
+        scoresList.appendChild(li);
+      });
     }
-    
-    // 提交名字
+
+    function checkNewRecord(score) {
+      const scores = getLeaderboard();
+      // 如果分數太低連榜都沒上，直接顯示排行榜
+      if (scores.length >= 10 && score <= scores[9].score) {
+        document.getElementById('leaderboard').style.display = 'block';
+        updateLeaderboardDisplay();
+        return;
+      }
+
+      // 有機會上榜，顯示輸入框
+      document.getElementById('currentScoreDisplay').textContent = score;
+      document.getElementById('nameModal').style.display = 'flex';
+      setTimeout(()=> document.getElementById('nameInput').focus(), 100);
+    }
+
     function submitName() {
-        const name = nameInput.value.trim();
-        if (name.length > 0) {
-            playerName = name;
-            nameModal.classList.add('hidden');
-            startButton.classList.remove('hidden');
-        } else {
-            alert('請輸入有效的名字！');
-        }
+      const name = document.getElementById('nameInput').value.trim() || '無名英雄';
+      const score = parseInt(document.getElementById('currentScoreDisplay').textContent);
+      
+      const scores = getLeaderboard();
+      const newEntry = { score: score, name: name, isCurrent: true };
+      
+      // 移除舊的 current 標記
+      scores.forEach(s => s.isCurrent = false);
+      
+      scores.push(newEntry);
+      scores.sort((a, b) => b.score - a.score); // 降序排列
+      
+      // 只保留前 10 名
+      const top10 = scores.slice(0, 10);
+      
+      saveLeaderboard(top10);
+      
+      document.getElementById('nameModal').style.display = 'none';
+      document.getElementById('leaderboard').style.display = 'block';
+      updateLeaderboardDisplay();
     }
 
-    // 鍵盤和滑鼠/觸控事件處理
-    function handleInput(e) {
-      if (game && !game.isGameOver) {
-        // Only handle movement if game is running and player is on screen
-        if (isGameRunning) {
-            const player = game.player;
-            // Key mapping: Left=A/Left Arrow, Right=D/Right Arrow, Jump=Space/Up Arrow/Click/Touch
-            if (e.type === 'keydown') {
-                switch (e.key) {
-                    case 'ArrowLeft':
-                    case 'a':
-                    case 'A':
-                        player.v.x = -5;
-                        break;
-                    case 'ArrowRight':
-                    case 'd':
-                    case 'D':
-                        player.v.x = 5;
-                        break;
-                    case ' ':
-                    case 'ArrowUp':
-                        player.jump();
-                        break;
-                }
-            }
+    //遊戲物件
+    class Game{
+      constructor(){
+        this.player = null
+        this.walls = []
+        this.width = 700
+        this.height = wh
+        this.walltypes = [
+          "normal","jump","slideLeft","slideRight",
+          "hurt","fade"
+        ]
+        this.hurt=0
+        this.playing=false
+        this.keystatus = {
+          left: false,
+          right: false,
+          up: false,
+          down: false,
         }
-      } else if (game && game.isGameOver) {
-          // Restart game on any click/key press during game over
-          restartGame();
+        this.time=0
+        
+        // 數學相關屬性
+        this.mathQuestion = "";
+        this.correctAnswer = 0;
+        this.wrongAnswer = 0;
       }
-    }
-    
-    // Touch/Click handler for jump and restart
-    function handleClick(e) {
-        if (game && !game.isGameOver && isGameRunning) {
-            // Treat tap/click as jump
-            game.player.jump();
-        } else if (game && game.isGameOver) {
-            // Restart game on click
-            restartGame();
-        } else if (!isGameRunning && nameModal.classList.contains('hidden')) {
-            // Start button click
-            if (e.target.id === 'startButton') {
-                startGame();
+      
+      // 生成新的數學題目
+      generateMathProblem() {
+        // 隨機決定加法或減法
+        const isAddition = Math.random() > 0.5;
+        let n1, n2;
+        
+        if (isAddition) {
+            n1 = Math.floor(Math.random() * 20) + 1; // 1-20
+            n2 = Math.floor(Math.random() * 20) + 1;
+            this.correctAnswer = n1 + n2;
+            this.mathQuestion = `${n1} + ${n2} = ?`;
+        } else {
+            // 減法確保結果是正數
+            n1 = Math.floor(Math.random() * 20) + 5;
+            n2 = Math.floor(Math.random() * n1); // 確保 n2 < n1
+            this.correctAnswer = n1 - n2;
+            this.mathQuestion = `${n1} - ${n2} = ?`;
+        }
+        
+        // 生成錯誤答案 (確保不等於正確答案)
+        do {
+            let offset = Math.floor(Math.random() * 5) + 1; // 1-5 誤差
+            if (Math.random() > 0.5) offset *= -1;
+            this.wrongAnswer = this.correctAnswer + offset;
+        } while (this.wrongAnswer < 0 || this.wrongAnswer === this.correctAnswer);
+        
+        // console.log("New Math:", this.mathQuestion, "Ans:", this.correctAnswer, "Wrong:", this.wrongAnswer);
+      }
+
+      init(){
+        // 初始化
+        this.walls=[]
+        this.generateMathProblem(); // 遊戲開始先出一題
+        
+        for(var i=0;i<wh/150;i++){
+          this.walls.push(new Wall({
+            p: new Vec2(Math.random()*this.width, i*150+100),
+            type: "normal" // 初始地板安全一點
+          })) 
+        }
+        this.player = new Player({
+          p: new Vec2(ww/2,200)
+        })    
+      }
+      
+      start(){
+        document.getElementById('musicBg').play().catch(e=>console.log("Audio play failed"));
+        document.getElementById('startBtn').style.display = 'none';
+        document.getElementById('leaderboard').style.display = 'none';
+        this.init()
+        this.playing=true
+        this.time=0
+      }
+      
+      restartGame() {
+        document.getElementById('leaderboard').style.display = 'none';
+        this.start();
+      }
+
+      end(){
+        document.getElementById('startBtn').style.display = 'none'; // 隱藏開始按鈕，改用排行榜的重來
+        playSound('dead');  
+        this.playing=false
+        
+        // 檢查排行榜
+        const finalScore = parseInt(this.time/100);
+        checkNewRecord(finalScore);
+      }
+      
+      update(){
+        this.time++
+        //更新玩家跟左右走
+        this.player.update()
+        if (this.keystatus.left){
+          this.player.p.x-=8
+        }
+        if (this.keystatus.right){
+          this.player.p.x+=8
+        }
+        
+        //推入新的地板
+        if (time%20==0){
+          let newType = this.walltypes[parseInt(Math.random()*this.walltypes.length)];
+          let newWall = new Wall({
+            p: new Vec2(Math.random()*this.width, this.height),
+            type: newType
+          });
+          
+          // 為普通或跳躍地板隨機分配答案
+          if (newType === "normal" || newType === "jump") {
+            const roll = Math.random();
+            if (roll < 0.3) {
+                // 30% 機率是正確答案
+                newWall.number = this.correctAnswer;
+            } else if (roll < 0.6) {
+                // 30% 機率是錯誤答案
+                newWall.number = this.wrongAnswer;
             }
+            // 40% 機率沒有數字
+          }
+          
+          this.walls.push(newWall);
         }
-    }
-    
-    // Prevent default touch actions (scrolling, zooming)
-    const preventDefault = (e) => e.preventDefault();
-
-    // 初始化
-    window.onload = function() {
-      // Initialize Firebase (Async operation)
-      initializeFirebase();
-      
-      resize();
-      window.addEventListener('resize', resize);
-      
-      // Control input listeners
-      window.addEventListener('keydown', handleInput);
-      canvas.addEventListener('click', handleClick);
-      canvas.addEventListener('touchstart', handleClick, { passive: false });
-      
-      // Prevent scrolling/pinch zoom on the entire document
-      document.addEventListener('touchstart', preventDefault, { passive: false });
-      document.addEventListener('touchmove', preventDefault, { passive: false });
-      document.addEventListener('touchend', preventDefault, { passive: false });
-      document.addEventListener('touchcancel', preventDefault, { passive: false });
-      
-      // Name modal event listeners
-      document.getElementById('submitName').addEventListener('click', submitName);
-      document.getElementById('nameInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          submitName();
+        
+        let touching = false
+        //處理地板跟人的碰撞
+        this.walls.forEach(wall=>{  
+          wall.update() 
+          if (wall.p.x-wall.width/2<this.player.p.x+this.player.width/2
+              &&   wall.p.x+wall.width/2>this.player.p.x-this.player.width/2){
+            if (this.player.p.y>wall.p.y 
+                && this.player.p.y<wall.p.y+wall.height+10){ 
+              touching=true
+              wall.step(this.player)
+              this.player.lastBlock=wall
+            }
+          }
+        }) 
+        
+        //如果沒有任何接觸，清掉上一個接觸的紀錄
+        if (!touching){
+          this.player.lastBlock=null
+          document.getElementById("transmiting").pause()
         }
-      });
-      
-      // Show name modal first
-      nameModal.classList.remove('hidden');
 
-      // Start the animation loop
-      animate();
-    };
-
-    // Note: The original modification to Game.prototype.update has been moved
-    // into the class definition for cleaner structure, ensuring the answer assignment logic is present.
-    // The previous modification was:
-    /*
-    const originalGameUpdate = Game.prototype.update;
-    Game.prototype.update = function() {
-      originalGameUpdate.call(this);
-      
-      // Assign answers to new normal and jump walls
-      this.walls.forEach(wall => {
-        if ((wall.type === "normal" || wall.type === "jump") && 
-            wall.answer === null && 
-            !wall.answerUsed && 
-            wall.p.y < wh - 100) { // Only assign to walls that are in view
-          // Randomly assign correct or wrong answer
-          if (Math.random() > 0.5) {
-            wall.answer = this.correctAnswer;
-          } else {
-            wall.answer = this.wrongAnswer;
+        this.walls = this.walls.filter(wall=>wall.active)
+        
+        //被上面刺到
+        if (this.player.p.y-this.player.height<0){
+          if (this.hurt==0){   
+            this.hurt=1
+            this.player.bloodDelta(-2)
+            this.player.v.y=2
+            this.player.p.y=10
+            TweenMax.to(this,0.5,{hurt: 0})
           }
         }
-      });
+        
+        //左右限制
+        if (this.player.p.x-this.player.width/2<0){
+          this.player.p.x=this.player.width/2
+        }
+        if (this.player.p.x+this.player.width/2>this.width){
+          this.player.p.x=this.width-this.player.width/2
+        }
+        
+        //掉到懸崖
+        if (this.player.p.y>wh+this.player.height){
+          game.end()
+        }
+      }
+      
+      draw(){
+        ctx.save()
+          //移動座標到遊戲左邊界
+          ctx.translate(ww/2-this.width/2,0)
+          let span = this.width/60
+          ctx.beginPath()
+          for(var i=0;i<=this.width/span;i++){
+            ctx.lineTo(i*span,(i%2)*30)
+          }  
+          ctx.fillStyle="white"
+          ctx.fill()
+        
+          //繪製界線
+          ctx.beginPath()
+          ctx.moveTo(0,0)
+          ctx.lineTo(0,wh)
+          ctx.moveTo(this.width,0)
+          ctx.lineTo(this.width,wh)
+          ctx.strokeStyle="rgba(255,255,255,0.3)"
+          ctx.stroke()
+        
+          this.player.draw()
+          this.walls.forEach(wall=>wall.draw())
+        ctx.restore()
+        
+        //疼痛的血幕
+        ctx.fillStyle="rgba(255,0,0,"+this.hurt+")"
+        ctx.fillRect(0,0,ww,wh)
+        
+        //繪製血量
+        this.player.drawBlood()
+        
+        //繪製階數
+        ctx.fillStyle='white'
+        ctx.font="50px Arial"
+        ctx.fillText( "地下："+(parseInt(this.time/100))+"階",40,100)
+        
+        //繪製數學題目
+        ctx.fillStyle='#ffdd38'
+        ctx.font="bold 40px Arial"
+        ctx.fillText("題目: " + this.mathQuestion, 40, 160)
+        
+        ctx.font="10px Arial"
+      }
+    }
+
+    //玩家物件
+    class Player{
+      constructor(args){
+        let def = {
+          p: new Vec2(0,0),
+          v: new Vec2(0,0),
+          a: new Vec2(0,1), 
+          width: 40,
+          height: 55,
+          blood: 10,
+          maxBlood: 10,
+          lastBlock: null,
+        }
+        Object.assign(def,args)
+        Object.assign(this,def)
+      }
+      update(){
+        this.p=this.p.add(this.v)
+        this.v=this.v.add(this.a)
+        
+      }
+      draw(){
+        //畫出人形狀
+        ctx.beginPath()
+        
+        ctx.save()
+          ctx.translate(this.p.x,this.p.y)
+          ctx.fillStyle="#0047ba"
+          ctx.fillRect(-this.width/2,-this.height,this.width,this.height)
+          ctx.fillStyle="#ffdd38"
+
+          ctx.fillRect(-5,-30,10,10)
+
+          //左右眼
+          ctx.beginPath()
+          ctx.arc(-6,-40,5,0,Math.PI*2)
+          ctx.arc(+6,-40,5,0,Math.PI*2)
+          ctx.fillStyle="white"
+          ctx.fill()
+
+          //瞳孔
+          ctx.beginPath()
+          ctx.arc(-6,-40,3,0,Math.PI*2)
+          ctx.arc(+6,-40,3,0,Math.PI*2)
+          ctx.fillStyle="black"   
+          ctx.fill()
+        
+        //右手
+        ctx.save()
+            ctx.translate(+this.width/2,-40)
+            ctx.rotate(-Math.log(this.v.y/2))
+            ctx.fillStyle="#416ee0"
+            ctx.fillRect(0,0,8,this.height/2 )
+
+          ctx.restore()
+
+          //左手
+          ctx.save()
+            ctx.translate(-this.width/2,-40)
+            ctx.rotate(Math.log(this.v.y/2))
+            ctx.fillStyle="#416ee0"
+            ctx.fillRect(-8,0,8,this.height/2 )
+
+          ctx.restore()
+
+        ctx.restore()
+      }
+      //畫出血量
+      drawBlood(){
+        for(var i=0;i<10;i++){
+          ctx.fillStyle=i<this.blood?"red":"rgba(255,255,255,0.2)"
+          ctx.fillRect(30+i*15+(i-1)*4,30,10,30)
+        }
+      }
+      //扣血量的統一管理
+      bloodDelta(delta){
+        if (delta<0){
+          playSound('hurt')
+        }
+        this.blood+=delta
+        if (this.blood>this.maxBlood){
+          this.blood=this.maxBlood
+        }
+        if (this.blood<=0){
+          
+          
+          this.blood=0
+          game.end()
+        }
+      }
+    }
+
+    //-----------------
+    //      牆壁物件
+    //-----------------
+    class Wall{
+      constructor(args){
+        let def = {
+          p: new Vec2(0,0),
+          v: new Vec2(0,-4),
+          a: new Vec2(0,0),
+          width: 150,
+          height: 20, 
+          extraHeight: 0,
+          type: "normal",
+          active: true,
+          number: null // 牆壁上的數字 (正確或錯誤答案)
+        }
+        Object.assign(def,args)
+        Object.assign(this,def)
+      }
+      update(){
+        this.p=this.p.add(this.v)
+        this.v=this.v.add(this.a)
+        if (this.p.y<-20){
+          this.active=false
+        }
+      }
+      
+      draw(){
+        ctx.save()
+        //移動到牆壁位置
+        ctx.translate(this.p.x-this.width/2,this.p.y-this.extraHeight)
+          ctx.fillStyle="white"
+          ctx.font = "12px Arial"
+        //   ctx.fillText(this.type,0,30)
+          
+          if (this.type=="normal" || this.type=="hurt"){
+            
+            ctx.fillStyle="#888" 
+            ctx.fillRect(0,0,this.width,this.height/2)
+          }
+        
+          //受傷
+          if (this.type=="hurt"){
+            ctx.beginPath()
+            let span = this.width/16
+            for(var i=0;i<=this.width/span;i+=1){ 
+              ctx.lineTo(0+i*span,-(i%2)*15)
+            }
+            ctx.fillStyle="#ddd" 
+            ctx.fill()
+          }
+        
+          //跳跳板
+          if (this.type=="jump"){
+            ctx.fillStyle="#53d337"
+            ctx.fillRect(0,0,this.width,5)
+            ctx.fillRect(0,this.height+this.extraHeight,this.width,5)
+            
+          }
+          //穿透
+          if (this.type=="fade"){
+            ctx.fillStyle="#ffd428"
+            ctx.fillRect(0,0,this.width,this.height)
+            
+          }
+          //  左滑跟右滑
+          if (this.type=="slideLeft" || this.type=="slideRight"){
+            for(var i=-1;i<this.width/20;i+=1){ 
+              let x = 0+i*20+(time%20)* (this.type=="slideLeft"?-1:1)
+              let width = 10
+              if (x<0){
+                x=0
+              } 
+              if (x+width>this.width){
+                width = this.width-x<0?0:(this.width-x)
+              }
+              ctx.fillStyle="red"
+              ctx.save()
+              //傾斜
+              ctx.transform(1, 0,0.5, 1, 0, 0)
+              ctx.fillRect(x ,0,width,this.height)
+              ctx.restore()
+            }
+          }
+          
+          // 繪製數字 (如果有)
+          if (this.number !== null) {
+              ctx.fillStyle = "white";
+              ctx.font = "bold 30px Arial";
+              ctx.textAlign = "center";
+              // 字體陰影，讓它在淺色地板也看得到
+              ctx.shadowColor="black";
+              ctx.shadowBlur=4;
+              ctx.fillText(this.number, this.width/2, -10);
+              ctx.shadowBlur=0;
+          }
+          
+        ctx.restore()
+      } 
+      //不同地板踩到時的影響
+      step(player){
+        player.v.y=0
+        if (player.lastBlock!=this){
+          
+          // --- 數學邏輯判斷 ---
+          if (this.number !== null) {
+              if (this.number === game.correctAnswer) {
+                  // 答對了
+                  playSound('correct'); // 可選：增加正確音效
+                  player.bloodDelta(1);
+                  // 答對後生成新題目
+                  game.generateMathProblem();
+              } else {
+                  // 答錯了
+                  // playSound('wrong'); 
+                  player.bloodDelta(-1);
+              }
+              // 吃掉數字，避免重複觸發
+              this.number = null;
+          }
+          // --- 結束數學邏輯 ---
+
+          // 注意：已移除原本的 player.bloodDelta(1) 來取消著地回血
+          
+          if (this.type=="normal"){
+            playSound('step')
+          }
+          if (this.type=="fade"){
+            playSound('fade')
+          }
+          if (this.type=="hurt"){
+            playSound('hurt')
+          }
+          if (this.type=="jump"){
+            playSound('jump')
+          }
+        }
+        if (this.type=="normal"){
+          player.p.y = this.p.y
+        }
+        if (this.type=="hurt"){
+          player.p.y = this.p.y
+          
+          if (player.lastBlock!=this){
+            player.bloodDelta(-2) 
+            game.hurt=1
+            TweenMax.to( game,0.2,{hurt: 0} )
+          }
+        }
+        if (this.type=="jump"){
+          player.v.y = -15
+          this.extraHeight=10
+          TweenMax.to(this,0.2,{extraHeight: 0})
+        } 
+        if (this.type=="slideLeft"){ 
+          player.p.x-=3
+          player.p.y = this.p.y
+             document.getElementById("transmiting").play()
+        }
+        if (this.type=="slideRight"){
+          player.p.x+=3
+          player.p.y = this.p.y
+             document.getElementById("transmiting").play()
+        }
+        if (this.type=="fade"){
+          player.p.y-=3
+          // player.p.y = this.p.y
+        }
+      }
+      
+    }
+
+    function initCanvas(){
+      ww = canvas.width = window.innerWidth
+      wh = canvas.height = window.innerHeight
+    }
+    initCanvas()
+
+    var game = new Game
+
+    function init(){
+      game.init()
+    }
+    function update(){
+      time++
+      if (game.playing){
+        game.update()
+      }
+    }
+    function draw(){
+       //清空背景
+      ctx.fillStyle=bgColor
+      ctx.fillRect(0,0,ww,wh)
+      
+      //-------------------------
+      //   在這裡繪製
+      
+      game.draw()
+      
+      //-----------------------
+      //繪製滑鼠座標
+      
+    //   ctx.fillStyle="red"
+    //   ctx.beginPath()
+    //   ctx.circle(mousePos,2)
+    //   ctx.fill()
+        
+    //   ctx.save()
+    //   ctx.beginPath()
+    //   ctx.translate(mousePos.x,mousePos.y)
+    //     ctx.strokeStyle="red"
+    //     let len = 20
+    //     ctx.line(new Vec2(-len,0),new Vec2(len,0))
+    //     ctx.line(new Vec2(0,-len),new Vec2(0,len))
+    //     ctx.fillText(mousePos,10,-10)
+    //     ctx.stroke()
+    //   ctx.restore()
+      
+      //schedule next render
+
+      requestAnimationFrame(draw)
+    }
+    function loaded(){
+      initCanvas()
+      init()
+      requestAnimationFrame(draw)
+      setInterval(update,1000/updateFPS)
+    }
+    window.addEventListener("load",loaded)
+    window.addEventListener("resize",initCanvas)
+
+    //滑鼠事件跟紀錄
+    var mousePos = new Vec2(0,0)
+    var mousePosDown = new Vec2(0,0)
+    var mousePosUp = new Vec2(0,0)
+
+    window.addEventListener("mousemove",mousemove)
+    window.addEventListener("mouseup",mouseup)
+    window.addEventListener("mousedown",mousedown)
+    function mousemove(evt){
+      mousePos.set(evt.clientX,evt.clientY)
+    }
+    function mouseup(evt){
+      mousePos.set(evt.clientX,evt.clientY)
+      mousePosUp = mousePos.clone()
+      
+    }
+    function mousedown(evt){
+      mousePos.set(evt.clientX,evt.clientY)
+      mousePosDown = mousePos.clone()
+    }
+
+    // keystatus= {}
+    window.addEventListener('keydown',function(evt){
+      let key = evt.key.replace("Arrow","").toLowerCase()
+      game.keystatus[key]=true
+    })
+
+    window.addEventListener('keyup',function(evt){
+      let key = evt.key.replace("Arrow","").toLowerCase()
+      game.keystatus[key]=false
+    })
+
+    // Touch controls for mobile/iPad
+    const leftBtn = document.getElementById('leftBtn');
+    const rightBtn = document.getElementById('rightBtn');
+    
+    // 使用 touchstart 和 touchend 來模擬按鍵按下和放開
+    const handleTouchStart = (direction) => (e) => {
+        e.preventDefault(); // 防止長按選取文字或跳出選單
+        game.keystatus[direction] = true;
+        e.target.style.backgroundColor = "rgba(255, 255, 255, 0.4)";
     };
-    */
-    // This logic is now directly inside the Game.update() method for encapsulation.
+
+    const handleTouchEnd = (direction) => (e) => {
+        e.preventDefault();
+        game.keystatus[direction] = false;
+        e.target.style.backgroundColor = "rgba(255, 255, 255, 0.15)";
+    };
+    
+    leftBtn.addEventListener('touchstart', handleTouchStart('left'), {passive: false});
+    leftBtn.addEventListener('touchend', handleTouchEnd('left'), {passive: false});
+    
+    rightBtn.addEventListener('touchstart', handleTouchStart('right'), {passive: false});
+    rightBtn.addEventListener('touchend', handleTouchEnd('right'), {passive: false});
+
+    // 名字輸入框的事件
+    document.getElementById('submitName').addEventListener('click', submitName);
+    document.getElementById('nameInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        submitName();
+      }
+    });
   </script>
 </body>
 </html>
