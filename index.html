@@ -844,7 +844,7 @@
           player.p.y = this.p.y
           
           if (player.lastBlock!=this){
-            player.bloodDelta(-2) 
+            player.bloodDelta(-1) 
             game.hurt=1
             TweenMax.to( game,0.2,{hurt: 0} )
           }
