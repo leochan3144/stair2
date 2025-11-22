@@ -339,7 +339,7 @@
       
       scores.slice(0, 10).forEach((entry, index) => {
         const li = document.createElement('li');
-        li.textContent = `${entry.name}: ${entry.score}階`;
+        li.textContent = `${entry.name}: ${entry.score}/F`;
         if (entry.isCurrent) {
           li.classList.add('current-score');
         }
@@ -362,7 +362,7 @@
     }
 
     function submitName() {
-      const name = document.getElementById('nameInput').value.trim() || '無名英雄';
+      const name = document.getElementById('nameInput').value.trim() || 'Unknown Hero';
       const score = parseInt(document.getElementById('currentScoreDisplay').textContent);
       
       const scores = getLeaderboard();
